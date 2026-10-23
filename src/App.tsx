@@ -16,7 +16,7 @@ import { HeatmapView } from "./components/stats/HeatmapView";
 
 type CenterTab = "twin" | "heatmap" | "traffic";
 type BottomTab = "journeys" | "dwell" | "queue" | "whatif";
-const CENTER_TABS: [CenterTab, string][] = [["twin", "Twin"], ["heatmap", "Heatmap"], ["traffic", "Traffic"]];
+const CENTER_TABS: [CenterTab, string][] = [["twin", "Twin"], ["heatmap", "Heatmap · draft"], ["traffic", "Traffic · draft"]];
 const BOTTOM_TABS: [BottomTab, string][] = [["journeys", "Journeys"], ["dwell", "Zone dwell"], ["queue", "Queue"], ["whatif", "What-if"]];
 
 export default function App() {
@@ -37,7 +37,14 @@ export default function App() {
             ))}
           </div>
           <div className="twin-wrap">
-            {centerTab === "twin" ? <TwinView /> : <HeatmapView mode={centerTab} />}
+            {centerTab === "twin" ? <TwinView /> : (
+              // Draft: heatmap/traffic depend on cross-frame tracking that is not yet reliable.
+              <div className="st-draft">
+                <HeatmapView mode={centerTab} />
+                <div className="st-draft-mark" aria-hidden="true">DRAFT</div>
+                <div className="st-draft-note">Draft — tracking-based views are not yet reliable. Do not use for decisions.</div>
+              </div>
+            )}
           </div>
           <Timeline />
         </main>
