@@ -92,3 +92,44 @@ table.lt tr.sel td { background: rgba(59,130,246,.22); }
 .wi-in { display: grid; grid-template-columns: 1fr 60px; gap: 3px 6px; align-items: center; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .wi-in input { background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--text); border-radius: 4px; padding: 2px 4px; font-family: var(--mono); font-size: 11px; width: 100%; }
 .assume { font-size: 10.5px; color: var(--faint); margin-top: 6px; line-height: 1.4; }
+
+/* ---- stats panels (st-) ---- */
+.bottom { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.4fr); }
+.st-tabs { display: flex; gap: 2px; flex: none; }
+.st-tab { background: transparent; border: 1px solid var(--border); color: var(--muted); font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 4px 12px; border-radius: 5px 5px 0 0; cursor: pointer; }
+.st-tab:hover { color: var(--text); }
+.st-tab.on { color: var(--accent); background: var(--panel); border-color: var(--border-strong); border-bottom-color: var(--panel); }
+.center > .st-tabs { margin-bottom: -8px; position: relative; z-index: 1; }
+.st-tabs.sm .st-tab { font-size: 10px; padding: 3px 8px; }
+.st-stack { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.st-stack > .panel { flex: 1; min-height: 0; border-top-left-radius: 0; }
+.st-empty { font-size: 12px; }
+.st-col { display: flex; flex-direction: column; gap: 3px; flex: 1 !important; min-height: 0; }
+.st-head { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-big { font-size: 20px; font-weight: 700; color: var(--accent); }
+.st-svg { width: 100%; flex: 1; min-height: 40px; cursor: pointer; }
+.st-foot { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: var(--muted); line-height: 1.3; }
+.st-foot input { width: 42px; background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--text); border-radius: 3px; padding: 0 3px; font-family: var(--mono); font-size: 10px; }
+.st-dash { display: inline-block; width: 16px; border-top: 1.5px dashed #fbbf24; vertical-align: middle; margin-left: 4px; }
+.st-donut { display: flex; align-items: center; gap: 8px; flex: 1 !important; }
+.st-donut svg { flex: none; }
+.st-legend { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px; min-width: 0; flex: 1; }
+.st-legend > div { display: grid; grid-template-columns: 8px 1fr auto 28px; gap: 5px; align-items: center; white-space: nowrap; }
+.st-legend > div > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
+.st-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.st-legend .num.muted { text-align: right; }
+.st-bars { display: flex; flex-direction: column; gap: 7px; }
+.st-bar-l { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; margin-bottom: 2px; white-space: nowrap; }
+.st-bar-t { position: relative; height: 10px; background: var(--panel-2); border-radius: 3px; }
+.st-bar-max { position: absolute; left: 0; top: 0; bottom: 0; opacity: .3; border-radius: 3px; }
+.st-bar-avg { position: absolute; left: 0; top: 2px; bottom: 2px; border-radius: 2px; }
+.st-bar-tgt { position: absolute; top: -3px; bottom: -3px; border-left: 1.5px dashed #fbbf24; }
+.st-heat { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.st-heat-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; }
+.st-heat-box { position: relative; background: #000; }
+.st-heat-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: brightness(.45) saturate(.6); }
+.st-heat-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.st-heat-bar { flex: none; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 6px 12px; border-top: 1px solid var(--border); font-size: 11px; }
+.st-ramp-l { display: inline-flex; align-items: center; gap: 6px; }
+.st-ramp-l i { width: 10px; height: 3px; display: inline-block; }
+.st-ramp { width: 90px; height: 8px; border-radius: 2px; background: linear-gradient(90deg, #3b82f6, #22c55e, #facc15, #ef4444); }
