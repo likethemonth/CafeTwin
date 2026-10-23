@@ -1,7 +1,7 @@
 // Journey table, queue chart, timeline scrubber. Adapted from WareTwin BottomPanels (MIT, Wayne Chou).
 import { useRef } from "react";
 import type { PointerEvent as RPE } from "react";
-import { SOURCES, useStore } from "../../store";
+import { SOURCES, activeObservations, useStore } from "../../store";
 import { useDerived } from "../../logic/derive";
 import { fmtClock } from "../shell/Header";
 import { Panel, fmtS } from "./LeftPanels";
@@ -87,7 +87,7 @@ export function Timeline() {
   const d = useDerived();
   const sourceId = useStore((s) => s.sourceId);
   const t = useStore((s) => s.times[s.sourceId]);
-  const obs = useStore((s) => s.observations[s.sourceId]);
+  const obs = useStore(activeObservations);
   const seek = useStore((s) => s.seek);
   const dur = SOURCES.find((s) => s.id === sourceId)?.durationS ?? 1;
   const ref = useRef<HTMLDivElement>(null);

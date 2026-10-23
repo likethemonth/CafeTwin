@@ -144,6 +144,7 @@ export async function analyseSegment(
 ): Promise<FrameObservation[]> {
   const { from, len, every, signal, onProgress } = opts;
   const store = useStore.getState();
+  store.setDemoMode(sourceId, false);
   const sessionId = newSession(sourceId);
   const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
   const step = Math.max(1, every || 1);

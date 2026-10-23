@@ -1,6 +1,6 @@
 // Pure derivation: observations + zones + time -> tracks, events, alerts, current state, metrics.
 import { useMemo } from "react";
-import { SOURCES, useStore, type Settings } from "../store";
+import { SOURCES, activeObservations, useStore, type Settings } from "../store";
 import type { Alert, BBox, FrameObservation, OperationalEvent, SourceId, Track, TrackSample, Zone, ZoneVisit } from "../types";
 import type { BoxStatus, Derived, Metrics, TrackState } from "./contract";
 import { buildTracks } from "./tracker";
@@ -88,7 +88,7 @@ export function derive(
   const events: OperationalEvent[] = [];
   const push = (e: Omit<OperationalEvent, "id" | "sourceId">) => {
     if (e.t > now) return;
-    const id = `${sourceId}:${e.kind}:${e.trackId ?? "-"}:${e.zoneId ?? "-"}:${fmt(e.t)}`;
+    const id = `${sourceId}:${obs[0]?.provenance ?? "model"}:${e.kind}:${e.trackId ?? "-"}:${e.zoneId ?? "-"}:${fmt(e.t)}`;
     events.push({ ...e, t: r2(e.t), id, sourceId });
   };
 
@@ -203,13 +203,13 @@ export function derive(
           const vs = v.samples.find((s) => s.t === o.t);
           if (!vs || !near(ps.bbox, vs.bbox)) continue;
           contactSeen.add(pair);
-          const id = `candidate_contact:${v.id}:${p.id}:${fmt(o.t)}`;
+          const id = `${sourceId}:${v.provenance}:candidate_contact:${v.id}:${p.id}:${fmt(o.t)}`;
           const review = contactReviews[id];
           if (review === "rejected") continue;
           events.push({ id, sourceId, t: r2(o.t), kind: "candidate_contact", trackId: v.id, zoneId: undefined,
             message: `Possible contact: ${p.id} near ${v.id} (needs review)`, provenance: "rule" });
           if (review === "confirmed") {
-            events.push({ id: `confirmed_contact:${v.id}:${p.id}:${fmt(o.t)}`, sourceId, t: r2(o.t), kind: "confirmed_contact",
+            events.push({ id: `${sourceId}:${v.provenance}:confirmed_contact:${v.id}:${p.id}:${fmt(o.t)}`, sourceId, t: r2(o.t), kind: "confirmed_contact",
               trackId: v.id, message: `Contact confirmed: ${p.id} with ${v.id}`, provenance: "manual" });
             if (!firstContactTimes.some((c) => c.trackId === v.id)) firstContactTimes.push({ trackId: v.id, t: r2(o.t) });
           }
@@ -262,7 +262,7 @@ export function derive(
 
 export function useDerived(): Derived {
   const sourceId = useStore((s) => s.sourceId);
-  const obsMap = useStore((s) => s.observations[s.sourceId]);
+  const obsMap = useStore(activeObservations);
   const zones = useStore((s) => s.zones);
   const settings = useStore((s) => s.settings);
   const t = useStore((s) => s.times[s.sourceId]);

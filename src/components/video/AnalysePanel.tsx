@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SOURCES, useStore } from "../../store";
-import { analyseCurrentFrame, analyseSegment } from "../../vision/client";
+import { analyseCurrentFrame, analyseSegment, cancelSessions } from "../../vision/client";
 import { loadSyntheticSession } from "../../demo/synthetic";
 import { getVideo } from "./videoRegistry";
 import "./video.css";
@@ -23,6 +23,7 @@ export function AnalysePanel() {
   const updateSettings = useStore((s) => s.updateSettings);
   const status = useStore((s) => s.analysis[s.sourceId]);
   const observations = useStore((s) => s.observations[s.sourceId]);
+  const demoObservations = useStore((s) => s.demoObservations[s.sourceId]);
   const clearObservations = useStore((s) => s.clearObservations);
   const setAnalysis = useStore((s) => s.setAnalysis);
 
@@ -33,7 +34,7 @@ export function AnalysePanel() {
 
   const obsList = Object.values(observations ?? {});
   const modelCount = obsList.filter((o) => o.provenance === "model").length;
-  const synthCount = obsList.filter((o) => o.provenance === "synthetic").length;
+  const synthCount = Object.keys(demoObservations ?? {}).length;
 
   const remaining = Math.max(0, source.durationS - t);
   const segLen = Math.max(0, Math.min(settings.segmentLenS, remaining));
@@ -78,6 +79,7 @@ export function AnalysePanel() {
   };
 
   const cancel = () => {
+    cancelSessions(sourceId);
     abortRef.current?.abort();
     abortRef.current = null;
     const st = useStore.getState().analysis[sourceId];
@@ -90,7 +92,7 @@ export function AnalysePanel() {
   };
 
   // Abort in-flight work when the source changes / unmount.
-  useEffect(() => () => abortRef.current?.abort(), [sourceId]);
+  useEffect(() => () => { abortRef.current?.abort(); cancelSessions(sourceId); }, [sourceId]);
 
   // Auto-sample: analyse current frame every sampleEveryS while playing, uncached timestamps only.
   useEffect(() => {
@@ -210,7 +212,7 @@ export function AnalysePanel() {
       </div>
 
       <p className="vp-hint">
-        Cached frames: <span className="vp-num">{obsList.length}</span> (model{" "}
+        Cached frames: <span className="vp-num">{obsList.length + synthCount}</span> (model{" "}
         <span className="vp-num">{modelCount}</span>, <span className="vp-tag-synth-text">synthetic</span>{" "}
         <span className="vp-num">{synthCount}</span>)
       </p>

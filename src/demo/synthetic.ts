@@ -1,5 +1,6 @@
 // CLEARLY SYNTHETIC demo observations (provenance "synthetic"). Not derived from any model output.
 import { useStore } from "../store";
+import { cancelSessions } from "../vision/client";
 import type { BBox, Detection, FrameObservation, SourceId } from "../types";
 
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -46,8 +47,10 @@ const P2: [number, BBox][] = [
 ];
 
 export function loadSyntheticSession(sourceId: SourceId): number {
+  cancelSessions(sourceId);
   const st = useStore.getState();
   st.clearObservations(sourceId, "synthetic");
+  st.setDemoMode(sourceId, true);
   const sessionId = `${sourceId}:synthetic`;
   const dur = sourceId === "staff" ? 10 : 15;
   let n = 0;

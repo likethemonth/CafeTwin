@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { derive } from '../src/logic/derive';
 import { buildTracks } from '../src/logic/tracker';
-import { PRESET_ZONES, useStore } from '../src/store';
+import { PRESET_ZONES, useStore, activeObservations } from '../src/store';
 import type { FrameObservation } from '../src/types';
 import { analyzeFrame } from '../server/analyzeHandler';
 
@@ -38,3 +38,16 @@ globalThis.fetch=async()=>new Response(JSON.stringify({output_text:'{"detections
 assert.equal((await analyzeFrame(body)).status,200,'Empty detections valid');
 globalThis.fetch=originalFetch;
 console.log('PASS: alert evidence, seeking, unknown arrival, lost vs exit, one-to-one tracks, moving camera, mapping, provider validation');
+
+// Identical source timestamps must retain both evidence sets without mixing them.
+const modelFrame = {...frames[0], provenance: "model" as const};
+useStore.getState().addObservation(modelFrame);
+useStore.getState().addObservation(frames[0]);
+assert.equal(useStore.getState().observations.drivethrough["0.00"].provenance, "model");
+useStore.getState().setDemoMode("drivethrough", true);
+assert.equal(activeObservations(useStore.getState())["0.00"].provenance, "synthetic");
+useStore.getState().clearObservations("drivethrough", "synthetic");
+assert.equal(activeObservations(useStore.getState())["0.00"].provenance, "model");
+const modelAlert = derive(frames.map(f=>({...f,provenance:"model" as const})),PRESET_ZONES,settings,6,[],{},"drivethrough").alerts[0];
+assert.notEqual(modelAlert.id, alert.id, "Synthetic acknowledgement cannot acknowledge model evidence");
+console.log("PASS: separate evidence caches and acknowledgement identities");

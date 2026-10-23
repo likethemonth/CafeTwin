@@ -68,6 +68,9 @@ interface State {
   zones: Zone[];
   /** observation cache keyed by sourceId then by timestamp string (t.toFixed(2)) */
   observations: Record<SourceId, Record<string, FrameObservation>>;
+  demoObservations: Record<SourceId, Record<string, FrameObservation>>;
+  demoMode: Record<SourceId, boolean>;
+  setDemoMode: (id: SourceId, enabled: boolean) => void;
   analysis: Record<SourceId, AnalysisStatus>;
   ackedAlerts: string[];
   contactReviews: Record<string, "confirmed" | "rejected">;
@@ -103,6 +106,9 @@ export const useStore = create<State>()(
       settings: { waitTargetS: 6, sampleEveryS: 2, segmentLenS: 16, autoSample: false, showZoneLabels: true, view: "3d" },
       zones: PRESET_ZONES,
       observations: emptyBySource(() => ({})),
+      demoObservations: emptyBySource(() => ({})),
+      demoMode: emptyBySource(() => false),
+      setDemoMode: (id, enabled) => set((s) => ({ demoMode: { ...s.demoMode, [id]: enabled } })),
       analysis: emptyBySource(() => ({ kind: "idle" } as AnalysisStatus)),
       ackedAlerts: [],
       contactReviews: {},
@@ -120,10 +126,12 @@ export const useStore = create<State>()(
       addObservation: (o) =>
         set((s) => {
           const src = (Object.keys(s.observations) as SourceId[]).find((k) => o.sessionId.startsWith(k)) ?? s.sourceId;
-          return { observations: { ...s.observations, [src]: { ...s.observations[src], [o.t.toFixed(2)]: o } } };
+          const field = o.provenance === "synthetic" ? "demoObservations" : "observations";
+          return { [field]: { ...s[field], [src]: { ...s[field][src], [o.t.toFixed(2)]: o } } };
         }),
       clearObservations: (sourceId, provenance) =>
         set((s) => {
+          if (provenance === "synthetic") return { demoObservations: { ...s.demoObservations, [sourceId]: {} }, demoMode: { ...s.demoMode, [sourceId]: false } };
           const cur = s.observations[sourceId];
           const next = provenance ? Object.fromEntries(Object.entries(cur).filter(([, o]) => o.provenance !== provenance)) : {};
           return { observations: { ...s.observations, [sourceId]: next } };
@@ -134,15 +142,32 @@ export const useStore = create<State>()(
     }),
     {
       name: "lanetwin-v1",
+      version: 2,
+      migrate: (persisted: unknown) => {
+        const old = persisted as Partial<State>;
+        const observations = emptyBySource(() => ({} as Record<string, FrameObservation>));
+        const demoObservations = emptyBySource(() => ({} as Record<string, FrameObservation>));
+        for (const id of Object.keys(observations) as SourceId[]) {
+          for (const [t, o] of Object.entries(old.observations?.[id] ?? {})) {
+            (o.provenance === "synthetic" ? demoObservations : observations)[id][t] = o;
+          }
+        }
+        return { ...old, observations, demoObservations, demoMode: emptyBySource(() => false), ackedAlerts: (old.ackedAlerts ?? []).map((id) => { const source = id.split(":")[0] as SourceId; const mode = Object.keys(demoObservations[source] ?? {}).length ? "synthetic" : "model"; return id.replace(`${source}:`, `${source}:${mode}:`); }), contactReviews: old.contactReviews ?? {} };
+      },
       partialize: (s) => ({
         sourceId: s.sourceId,
         times: s.times,
         settings: s.settings,
         zones: s.zones,
         observations: s.observations,
+        demoObservations: s.demoObservations,
+        demoMode: s.demoMode,
         ackedAlerts: s.ackedAlerts,
         contactReviews: s.contactReviews,
       }),
     },
   ),
 );
+
+/** UI reads one evidence mode at a time; inference always caches model observations separately. */
+export const activeObservations = (s: State) => s.demoMode[s.sourceId] ? s.demoObservations[s.sourceId] : s.observations[s.sourceId];

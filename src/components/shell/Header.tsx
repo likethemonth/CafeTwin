@@ -1,5 +1,5 @@
 // LaneTwin header. Adapted from WareTwin's TopBar (MIT, Wayne Chou).
-import { SOURCES, useStore } from "../../store";
+import { SOURCES, activeObservations, useStore } from "../../store";
 import type { SourceId } from "../../types";
 import { getVideo } from "../video/videoRegistry";
 
@@ -18,7 +18,7 @@ export function Header() {
   const rate = useStore((s) => s.rate);
   const setRate = useStore((s) => s.setRate);
   const t = useStore((s) => s.times[s.sourceId]);
-  const obs = useStore((s) => s.observations[s.sourceId]);
+  const obs = useStore(activeObservations);
   const src = SOURCES.find((s) => s.id === sourceId);
 
   const list = Object.values(obs ?? {});
