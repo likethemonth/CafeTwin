@@ -54,6 +54,8 @@ export interface Zone {
   role: ZoneRole;
   /** polygon in normalised image coords */
   points: [number, number][];
+  /** Visible service opening; membership still uses the ground-area polygon above. */
+  displayPoints?: [number, number][];
   color: string;
 }
 

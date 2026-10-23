@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { SOURCES, useStore } from "../../store";
+import { PRESET_ZONES, SOURCES, useStore } from "../../store";
 import { useDerived } from "../../logic/derive";
 import type { TrackState } from "../../logic/contract";
 import { registerVideo } from "./videoRegistry";
@@ -214,13 +214,16 @@ function VideoStage() {
           onClick={onOverlayClick}
         >
           {sourceZones.map((z) => {
-            const pts = z.points.map(([x, y]) => toPx(x, y).join(",")).join(" ");
-            const [lx, ly] = toPx(Math.min(...z.points.map((p) => p[0])), Math.min(...z.points.map((p) => p[1])));
+            const preset = PRESET_ZONES.find((p) => p.id === z.id && JSON.stringify(p.points) === JSON.stringify(z.points));
+            const points = editing ? z.points : (z.displayPoints ?? preset?.displayPoints ?? z.points);
+            const isWindow = !editing && !!(z.displayPoints ?? preset?.displayPoints);
+            const pts = points.map(([x, y]) => toPx(x, y).join(",")).join(" ");
+            const [lx, ly] = toPx(Math.min(...points.map((p) => p[0])), Math.min(...points.map((p) => p[1])));
             return (
-              <g key={z.id} className="vp-zone">
-                <polygon points={pts} fill={z.color} fillOpacity={0.14} stroke={z.color} strokeOpacity={0.7} strokeWidth={1.5} />
+              <g key={z.id} className="vp-zone" data-zone-id={z.id}>
+                <polygon points={pts} fill={z.color} fillOpacity={isWindow ? 0.06 : 0.14} stroke={z.color} strokeOpacity={0.7} strokeWidth={1.5} />
                 {showZoneLabels && (
-                  <text x={lx + 4} y={ly + 12} className="vp-zone-label" fill={z.color}>
+                  <text x={isWindow ? Math.min(rect.cw - 8, lx + 4) : lx + 4} y={isWindow ? Math.max(12, ly - 6) : ly + 12} textAnchor={isWindow && lx > rect.cw / 2 ? "end" : "start"} className="vp-zone-label" fill={z.color}>
                     {z.name}
                   </text>
                 )}
