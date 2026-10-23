@@ -29,7 +29,7 @@ function devAnalyzeApi(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  for (const k of ["OPENAI_API_KEY", "VISION_MODEL"]) if (env[k] && !process.env[k]) process.env[k] = env[k];
+  for (const k of ["OPENAI_API_KEY", "VISION_MODEL", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT"]) if (env[k] && !process.env[k]) process.env[k] = env[k];
   return {
     plugins: [react(), devAnalyzeApi()],
   };

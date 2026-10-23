@@ -60,12 +60,17 @@ function extractText(data: any): string | null {
   return null;
 }
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
-  const key = process.env.OPENAI_API_KEY;
+  // Prefer Azure OpenAI (v1 OpenAI-compatible surface, model = deployment name); fall back to OpenAI.
+  const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const azureKey = process.env.AZURE_OPENAI_API_KEY;
+  const useAzure = Boolean(azureEndpoint && azureKey);
+  const key = useAzure ? azureKey : process.env.OPENAI_API_KEY;
   if (!key) return bad(503, "not_configured");
-  const model = process.env.VISION_MODEL || "gpt-6-astra";
+  const model = (useAzure ? process.env.AZURE_OPENAI_DEPLOYMENT : process.env.VISION_MODEL) || "gpt-6-astra";
+  const url = useAzure ? `${azureEndpoint!.replace(/\/+$/, "")}/responses` : "https://api.openai.com/v1/responses";
+  const authHeaders: Record<string, string> = useAzure ? { "api-key": key } : { Authorization: `Bearer ${key}` };
 
   const body = (typeof rawBody === "string" ? safeParse(rawBody) : rawBody) as Partial<AnalyzeBody> | null;
   if (
@@ -84,10 +89,10 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
   const timer = setTimeout(() => ctrl.abort(), 30_000);
   let resp: Response;
   try {
-    resp = await fetch("https://api.openai.com/v1/responses", {
+    resp = await fetch(url, {
       method: "POST",
       signal: ctrl.signal,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({
         model,
         input: [
@@ -134,11 +139,18 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
   const parsed = safeParse(text) as any;
   if (!parsed || !Array.isArray(parsed.detections)) return bad(502, "invalid_response", "output was not the expected JSON");
 
+  // Reject malformed provider data rather than clamping or silently discarding boxes.
+  if (parsed.detections.some((d: any) => !d || !["vehicle", "person"].includes(d.cls) ||
+    !Array.isArray(d.bbox) || d.bbox.length !== 4 ||
+    d.bbox.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1) ||
+    d.bbox[0] >= d.bbox[2] || d.bbox[1] >= d.bbox[3])) {
+    return bad(502, "invalid_response", "provider returned invalid detections or bounding boxes");
+  }
   const counters = { vehicle: 0, person: 0 };
   const detections = parsed.detections
     .filter((d: any) => d && (d.cls === "vehicle" || d.cls === "person") && Array.isArray(d.bbox) && d.bbox.length === 4)
     .map((d: any) => {
-      const b = d.bbox.map((v: unknown) => clamp01(Number(v)));
+      const b = d.bbox;
       const cls = d.cls as "vehicle" | "person";
       counters[cls] += 1;
       return {
