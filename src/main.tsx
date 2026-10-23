@@ -9,17 +9,14 @@ import { loadSyntheticSession } from "./demo/synthetic";
 import referenceFrames from "./data/drivethrough-observations.json";
 import { FrameObservationSchema } from "./types";
 
-// Cached hosted analysis of this exact bundled clip, not synthetic trajectories.
-const referenceMarker = "lanetwin-reference-replay-v1";
-if (!localStorage.getItem(referenceMarker)) {
-  for (const frame of referenceFrames) {
-    const observation = FrameObservationSchema.parse(frame);
-    if (!useStore.getState().observations.drivethrough[observation.t.toFixed(2)]) {
-      useStore.getState().addObservation(observation);
-    }
-  }
+// Locked reference replay: 32 hosted-model frames (gpt-6-astra, every 0.5 s) of this exact bundled clip.
+// Reloaded on every page load so stale, mixed or synthetic caches can never alter the drive-through view.
+{
+  const st = useStore.getState();
+  st.clearObservations("drivethrough");
+  st.clearObservations("drivethrough", "synthetic");
+  for (const frame of referenceFrames) st.addObservation(FrameObservationSchema.parse(frame));
   useStore.getState().setDemoMode("drivethrough", false);
-  localStorage.setItem(referenceMarker, "loaded");
 }
 
 // Start with a labelled demonstration when a recording has no real analysis yet.

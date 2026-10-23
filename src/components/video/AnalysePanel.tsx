@@ -14,7 +14,22 @@ function isNotConfigured(msg: string | null | undefined): boolean {
 
 type LastAction = "frame" | "segment" | null;
 
+/** Drive-through uses the locked reference replay; other recordings keep live analysis controls. */
 export function AnalysePanel() {
+  const sourceId = useStore((s) => s.sourceId);
+  if (sourceId !== "drivethrough") return <AnalysePanelControls />;
+  return (
+    <div className="vp-analyse">
+      <div className="vp-analyse-head"><span>Analysis</span></div>
+      <p className="vp-note">
+        Reference replay: 32 frames analysed by the hosted model (gpt-6-astra), one every 0.5 s across the clip.
+        Boxes are observed on those frames and interpolated between them. Locked so every load shows the same verified result.
+      </p>
+    </div>
+  );
+}
+
+function AnalysePanelControls() {
   const sourceId = useStore((s) => s.sourceId);
   const source = SOURCES.find((s) => s.id === sourceId) ?? SOURCES[0];
   const t = useStore((s) => s.times[s.sourceId] ?? 0);
