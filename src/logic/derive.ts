@@ -9,6 +9,7 @@ import { LANE_ZONES } from "../components/twin/lane";
 const INTERP_MAX_GAP_S = 6;
 const STALE_S = 4;
 const HIDE_S = 6;
+const HOLD_S = 1;
 const NEAR_NOW_S = 4;
 const WAIT_ROLES = new Set(["queue", "order", "pickup"]);
 const EPS = 1e-6;
@@ -158,7 +159,8 @@ export function derive(
     const next = full.samples.find((s) => s.t > now);
     // A later analysed frame with no matching detection is evidence of absence.
     const latestFrame = [...obs].reverse().find((o) => o.t <= now);
-    if (latestFrame && prev.t < latestFrame.t - EPS) continue;
+    // missed in the latest frame: keep only if it reappears soon (bridge one missed detection)
+    if (latestFrame && prev.t < latestFrame.t - EPS && !(next && next.t - prev.t <= INTERP_MAX_GAP_S)) continue;
     let bbox: BBox | null = null;
     let estimated = false;
     if (Math.abs(prev.t - t) < 0.01) {
@@ -166,7 +168,7 @@ export function derive(
     } else if (next && next.t - prev.t <= INTERP_MAX_GAP_S) {
       bbox = interpolate(prev.bbox, next.bbox, (t - prev.t) / (next.t - prev.t));
       estimated = true;
-    } else if (t - prev.t <= HIDE_S) {
+    } else if (t - prev.t <= HOLD_S) { // no later sample: hold briefly, never drag a box behind a moving car
       bbox = prev.bbox;
     }
     if (!bbox) continue;

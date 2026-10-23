@@ -48,7 +48,7 @@ export function Header() {
       <div className="topbar-right">
         <button className="btn" onClick={toggle} title={playing ? "Pause" : "Play"}>{playing ? "❚❚ Pause" : "▶ Play"}</button>
         <select className="lt-select" value={rate} onChange={(e) => changeRate(Number(e.target.value))} title="Playback speed">
-          {[0.5, 1, 2].map((r) => <option key={r} value={r}>{r}×</option>)}
+          {[0.25, 0.5, 1, 2].map((r) => <option key={r} value={r}>{r}×</option>)}
         </select>
         <span className="clock-lt num" title="Source video timestamp">{fmtClock(t)}<span className="muted" style={{ fontSize: 12 }}> / {fmtClock(src?.durationS)}</span></span>
       </div>

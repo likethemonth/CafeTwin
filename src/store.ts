@@ -103,7 +103,7 @@ export const useStore = create<State>()(
       sourceId: "drivethrough",
       times: emptyBySource(() => 0),
       playing: false,
-      rate: 1,
+      rate: 0.5, // slowed by default so sparse boxes are easier to follow
       selectedTrackId: null,
       settings: { waitTargetS: 6, sampleEveryS: 2, segmentLenS: 16, autoSample: false, showZoneLabels: true, view: "3d" },
       zones: PRESET_ZONES,
