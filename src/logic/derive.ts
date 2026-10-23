@@ -6,10 +6,10 @@ import type { BoxStatus, Derived, Metrics, TrackState } from "./contract";
 import { buildTracks } from "./tracker";
 import { LANE_ZONES } from "../components/twin/lane";
 
-const INTERP_MAX_GAP_S = 3;
-const STALE_S = 2.5;
-const HIDE_S = 4;
-const NEAR_NOW_S = 3;
+const INTERP_MAX_GAP_S = 6;
+const STALE_S = 4;
+const HIDE_S = 6;
+const NEAR_NOW_S = 4;
 const WAIT_ROLES = new Set(["queue", "order", "pickup"]);
 const EPS = 1e-6;
 

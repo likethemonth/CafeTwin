@@ -3,7 +3,7 @@ import type { BBox, FrameObservation, ObjClass, Provenance, SourceId, Track } fr
 
 import { colourFamily } from "./appearance";
 
-export const MAX_GAP_S = 4;
+export const MAX_GAP_S = 6; // tolerate one missed detection at 2–3 s sampling
 const MIN_SCORE = 0.15;
 const AMBIGUITY_MARGIN = 0.08;
 
@@ -65,7 +65,8 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
         const previousColour = colourFamily(tr.samples[tr.samples.length - 1].colour);
         const nextColour = colourFamily(d.colour);
         if (previousColour && nextColour && previousColour !== nextColour) return;
-        const s = matchScore(tr.samples[tr.samples.length - 1].bbox, d.bbox as BBox, o.t - tr.lastT);
+        // same colour family breaks ties between adjacent look-alike queued cars
+        const s = matchScore(tr.samples[tr.samples.length - 1].bbox, d.bbox as BBox, o.t - tr.lastT) + (previousColour && previousColour === nextColour ? 0.2 : 0);
         if (s >= MIN_SCORE) pairs.push({ ti, di, s });
       });
     });
