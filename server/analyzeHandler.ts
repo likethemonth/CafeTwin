@@ -79,6 +79,8 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
     typeof body.t !== "number" ||
     typeof body.imageDataUrl !== "string" ||
     !body.imageDataUrl.startsWith("data:image/") ||
+    body.imageDataUrl.length > 1_500_000 || // ~1.1 MB image; frames are ~50 KB JPEGs
+
     typeof body.width !== "number" ||
     typeof body.height !== "number"
   ) {

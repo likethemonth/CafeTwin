@@ -146,7 +146,7 @@ export async function analyseSegment(
   const store = useStore.getState();
   const sessionId = newSession(sourceId);
   const dur = isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
-  const step = Math.max(0.25, every || 1);
+  const step = Math.max(1, every || 1);
   const times: number[] = [];
   for (let t = Math.max(0, from); t <= from + Math.max(0, len) + 1e-6 && t < dur && times.length < MAX_REQUESTS; t += step) {
     times.push(Math.round(t * 100) / 100);

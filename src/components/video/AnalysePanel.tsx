@@ -37,7 +37,7 @@ export function AnalysePanel() {
 
   const remaining = Math.max(0, source.durationS - t);
   const segLen = Math.max(0, Math.min(settings.segmentLenS, remaining));
-  const every = Math.max(0.25, settings.sampleEveryS);
+  const every = Math.max(1, settings.sampleEveryS);
   const plannedCount = segLen > 0 ? Math.floor(segLen / every) + 1 : 0;
 
   const running = status?.kind === "running";
