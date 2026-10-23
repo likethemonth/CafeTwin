@@ -39,7 +39,7 @@ export function Header() {
 
   return (
     <header className="topbar">
-      <div className="brand"><span className="lane">Lane</span>Twin</div>
+      <a className="brand" href="/landing" title="About LaneTwin" style={{ color: "inherit", textDecoration: "none" }}><span className="lane">Lane</span>Twin</a>
       <span className="site-lbl">Site A · Drive-through</span>
       <select className="lt-select" value={sourceId} onChange={(e) => { getVideo()?.pause(); setSource(e.target.value as SourceId); }} title="Recording">
         {SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}

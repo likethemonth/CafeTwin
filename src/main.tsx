@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./waretwin-base.css";
 import "./styles.css";
 import App from "./App";
+import { Landing } from "./components/landing/Landing";
 import { SOURCES, useStore } from "./store";
 import { loadSyntheticSession } from "./demo/synthetic";
 import referenceFrames from "./data/drivethrough-observations.json";
@@ -29,8 +30,16 @@ for (const source of SOURCES) {
   }
 }
 
+// Landing page at "/landing"; the control room stays at "/".
+function Root() {
+  if (window.location.pathname.replace(/\/$/, "") === "/landing") {
+    return <Landing onEnter={() => { window.location.href = "/"; }} />;
+  }
+  return <App />;
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <Root />
   </React.StrictMode>,
 );

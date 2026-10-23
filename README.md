@@ -42,6 +42,8 @@ Clips are treated as separate, unsynchronised recordings.
 
 UI patterns and base stylesheet adapted from [WareTwin](https://github.com/WayneChou-bot/WareTwin) (MIT, © 2026 Wayne Chou) — see `docs/third_party/WareTwin-LICENSE.txt`. Zone/time-in-zone concepts follow Roboflow `supervision` examples (no code imported).
 
+Landing page hero (`src/components/ui/scroll-locked-video-hero.tsx`) adapted from [scroll-locked-video-hero](https://21st.dev/@gughigug) by Guglielmo Giannattasio, rewritten to lock its own scroll container and release at the end of the video. It scrubs `public/footage/hero-aerial-scrub.mp4`, a re-encode of `Aerialview.mp4` with a keyframe every 6 frames for smooth seeking. The landing page is at `/landing`; the control room is at `/`.
+
 ## Limitations
 
 - Model localisation quality unverified; schema-valid output is not proof of accurate detection.
