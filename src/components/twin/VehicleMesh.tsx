@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { useStore } from "../../store";
 import type { TrackState } from "../../logic/contract";
 import { SELECTED_COLOR, STATUS_COLOR } from "./lane";
+import { vehiclePaint } from "../../logic/appearance";
 
 export function statusColor(s: TrackState): string {
   if (s.stale || s.track.uncertain) return STATUS_COLOR.stale;
@@ -17,7 +18,7 @@ export function VehicleMesh({ s, selected, showLabel, color, opacity, wheels }: 
   s: TrackState; selected: boolean; showLabel: boolean; color?: string; opacity?: number;
   wheels?: MutableRefObject<(THREE.Object3D | null)[]>;
 }) {
-  const c = color ?? statusColor(s);
+  const c = color ?? vehiclePaint(s);
   const op = opacity ?? (s.estimated || s.stale ? 0.5 : 1);
   const transparent = op < 1;
   return (
@@ -25,11 +26,11 @@ export function VehicleMesh({ s, selected, showLabel, color, opacity, wheels }: 
       <mesh position={[0, 0.5, 0]} castShadow>
         <boxGeometry args={[2.0, 0.55, 1.0]} />
         <meshStandardMaterial color={c} transparent={transparent} opacity={op}
-          emissive={selected ? SELECTED_COLOR : "#000000"} emissiveIntensity={selected ? 0.6 : 0} />
+          metalness={0.3} roughness={0.4} />
       </mesh>
       <mesh position={[-0.15, 0.98, 0]} castShadow>
         <boxGeometry args={[1.05, 0.42, 0.9]} />
-        <meshStandardMaterial color="#cbd5e1" transparent={transparent} opacity={op * 0.9} />
+        <meshStandardMaterial color="#52606b" transparent={transparent} opacity={op * 0.9} />
       </mesh>
       {[[0.62, 0.52], [0.62, -0.52], [-0.62, 0.52], [-0.62, -0.52]].map(([x, z], i) => (
         <group key={i} position={[x, 0.22, z]} ref={(o) => { if (wheels) wheels.current[i] = o; }}>
@@ -50,7 +51,7 @@ export function VehicleMesh({ s, selected, showLabel, color, opacity, wheels }: 
           <meshBasicMaterial color={SELECTED_COLOR} wireframe />
         </mesh>
       )}
-      {showLabel && <TrackLabel s={s} selected={selected} color={c} y={1.8} />}
+      {showLabel && <TrackLabel s={s} selected={selected} color={statusColor(s)} y={1.8} />}
     </>
   );
 }
@@ -120,7 +121,7 @@ export function useSmoothMotion(
     const t = st.times[st.sourceId];
     const jumped = lastT.current != null && Math.abs(t - lastT.current) > SNAP_JUMP_S;
     lastT.current = t;
-    const k = jumped ? 1 : 1 - Math.pow(0.004, Math.min(dt, 0.1));
+    const k = jumped || !st.playing ? 1 : 1 - Math.pow(0.004, Math.min(dt, 0.1));
     const dx = (tx - g.position.x) * k, dz = (tz - g.position.z) * k;
     g.position.x += dx;
     g.position.z += dz;

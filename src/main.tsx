@@ -5,6 +5,21 @@ import "./styles.css";
 import App from "./App";
 import { SOURCES, useStore } from "./store";
 import { loadSyntheticSession } from "./demo/synthetic";
+import referenceFrames from "./data/drivethrough-observations.json";
+import { FrameObservationSchema } from "./types";
+
+// Cached hosted analysis of this exact bundled clip, not synthetic trajectories.
+const referenceMarker = "lanetwin-reference-replay-v1";
+if (!localStorage.getItem(referenceMarker)) {
+  for (const frame of referenceFrames) {
+    const observation = FrameObservationSchema.parse(frame);
+    if (!useStore.getState().observations.drivethrough[observation.t.toFixed(2)]) {
+      useStore.getState().addObservation(observation);
+    }
+  }
+  useStore.getState().setDemoMode("drivethrough", false);
+  localStorage.setItem(referenceMarker, "loaded");
+}
 
 // Start with a labelled demonstration when a recording has no real analysis yet.
 // Existing model results retain their selected evidence mode.

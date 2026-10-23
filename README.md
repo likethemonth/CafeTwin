@@ -81,3 +81,7 @@ vercel --prod --yes
 ```
 
 Headless Chromium checks covered the synthetic workflow, acknowledgement after reload, source isolation, backward seeking, shared selection, canvas sizing, zone editor framing and normal/resized/fullscreen SVG coordinates. The final clean local UI run had no console errors. Provider validation checks use fixtures and do not establish detection quality. Browser screenshots are saved locally under `output/playwright/` (gitignored).
+
+## Footage-matched default replay
+
+The default drive-through replay includes 32 cached Azure model observations at 0.5-second intervals (0–15.5 s) from the bundled clip, generated on 2026-10-23. No API request is needed to replay them. The separate synthetic button still loads illustrative paths; those are not footage annotations. Model paint descriptions now colour vehicle bodies; alert/selection colours remain on labels and outlines. Unknown paint uses a neutral grey. The tracker rejects coarse colour mismatches and hides a track when a newer analysed frame does not contain it. Positions between samples are estimated; fast motion, occlusions and ambiguous identities remain limitations. Colours are coarse visual descriptions, not exact paint measurements.

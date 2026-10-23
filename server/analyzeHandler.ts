@@ -163,22 +163,19 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
   const parsed = safeParse(text) as any;
   if (!parsed || !Array.isArray(parsed.detections)) return bad(502, "invalid_response", "output was not the expected JSON");
 
-  // Pixel boxes -> normalised 0..1. Reject structurally malformed output; clamp slight overshoot;
-  // drop boxes that are degenerate (< 2 px) after clamping.
+  // Pixel boxes -> normalised 0..1. Reject malformed boxes instead of repairing or dropping them.
   if (parsed.detections.some((d: any) => !d || !["vehicle", "person"].includes(d.cls) ||
     !Array.isArray(d.bbox) || d.bbox.length !== 4 ||
-    d.bbox.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v)))) {
+    d.bbox.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v)) ||
+    d.bbox[0] < 0 || d.bbox[1] < 0 || d.bbox[2] > imgW || d.bbox[3] > imgH ||
+    d.bbox[0] >= d.bbox[2] || d.bbox[1] >= d.bbox[3])) {
     return bad(502, "invalid_response", "provider returned invalid detections or bounding boxes");
   }
-  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
   const counters = { vehicle: 0, person: 0 };
   const detections = [];
   for (const d of parsed.detections as any[]) {
-    let [x0, y0, x1, y1] = d.bbox as number[];
-    if (x0 > x1) [x0, x1] = [x1, x0];
-    if (y0 > y1) [y0, y1] = [y1, y0];
-    const b = [clamp01(x0 / imgW), clamp01(y0 / imgH), clamp01(x1 / imgW), clamp01(y1 / imgH)];
-    if ((b[2] - b[0]) * imgW < 2 || (b[3] - b[1]) * imgH < 2) continue;
+    const [x0, y0, x1, y1] = d.bbox as number[];
+    const b = [x0 / imgW, y0 / imgH, x1 / imgW, y1 / imgH];
     const cls = d.cls as "vehicle" | "person";
     counters[cls] += 1;
     detections.push({

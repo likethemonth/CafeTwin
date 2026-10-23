@@ -156,6 +156,9 @@ export function derive(
     if (exitVisit && now > exitVisit.enterT + STALE_S) continue;
     const prev = seen[seen.length - 1];
     const next = full.samples.find((s) => s.t > now);
+    // A later analysed frame with no matching detection is evidence of absence.
+    const latestFrame = [...obs].reverse().find((o) => o.t <= now);
+    if (latestFrame && prev.t < latestFrame.t - EPS) continue;
     let bbox: BBox | null = null;
     let estimated = false;
     if (Math.abs(prev.t - t) < 0.01) {
@@ -182,7 +185,22 @@ export function derive(
     const laneZone = LANE_ZONES.find((z) => z.role === mappingZone?.role);
     const xs = mappingZone?.points.map((p) => p[0]) ?? [];
     const fraction = xs.length ? Math.min(1, Math.max(0, (bottomCentre(bbox)[0] - Math.min(...xs)) / Math.max(0.001, Math.max(...xs) - Math.min(...xs)))) : 0;
-    const laneProgress = laneZone ? laneZone.from + fraction * (laneZone.to - laneZone.from) : null;
+    let laneProgress = laneZone ? laneZone.from + fraction * (laneZone.to - laneZone.from) : null;
+    if (mapped && laneProgress === null && track.cls === "vehicle") {
+      const [x, y] = bottomCentre(bbox);
+      const spans = zones.flatMap(z => {
+        const lane = LANE_ZONES.find(l => l.role === z.role);
+        if (!lane || z.points.length < 3) return [];
+        return [{min: Math.min(...z.points.map(p=>p[0])), max: Math.max(...z.points.map(p=>p[0])),
+          low: Math.min(...z.points.map(p=>p[1])), high: Math.max(...z.points.map(p=>p[1])), lane}];
+      }).sort((a,b)=>a.min-b.min);
+      for (let i=1;i<spans.length;i++) {
+        const a=spans[i-1], b=spans[i];
+        if (x>a.max && x<b.min && y>=Math.max(a.low,b.low) && y<=Math.min(a.high,b.high)) {
+          laneProgress=a.lane.to+(x-a.max)/(b.min-a.max)*(b.lane.from-a.lane.to);
+        }
+      }
+    }
     states.push({ track, bbox, estimated, stale, zoneId, dwellS, status, laneProgress });
   }
 

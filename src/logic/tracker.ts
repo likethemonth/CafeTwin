@@ -1,6 +1,8 @@
 // Deterministic greedy one-to-one tracker over sorted frame observations.
 import type { BBox, FrameObservation, ObjClass, Provenance, SourceId, Track } from "../types";
 
+import { colourFamily } from "./appearance";
+
 export const MAX_GAP_S = 4;
 const MIN_SCORE = 0.15;
 const AMBIGUITY_MARGIN = 0.08;
@@ -34,7 +36,7 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
   const firstT = obs.length ? obs[0].t : 0;
   let prevCount = -1;
 
-  const newTrack = (cls: ObjClass, t: number, bbox: BBox, provenance: Provenance, uncertain: boolean): Track => {
+  const newTrack = (cls: ObjClass, t: number, bbox: BBox, provenance: Provenance, uncertain: boolean, colour?: string): Track => {
     counters[cls] += 1;
     const tr: Track = {
       id: `${cls === "vehicle" ? "V" : "P"}${String(counters[cls]).padStart(3, "0")}`,
@@ -42,7 +44,7 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
       cls,
       firstT: t,
       lastT: t,
-      samples: [{ t, bbox, estimated: false }],
+      samples: [{ t, bbox, colour, estimated: false }],
       zoneHistory: [],
       uncertain,
       presentAtStart: t === firstT && t < 1,
@@ -60,6 +62,9 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
     o.detections.forEach((d, di) => {
       active.forEach((tr, ti) => {
         if (tr.cls !== d.cls || tr.lastT >= o.t) return;
+        const previousColour = colourFamily(tr.samples[tr.samples.length - 1].colour);
+        const nextColour = colourFamily(d.colour);
+        if (previousColour && nextColour && previousColour !== nextColour) return;
         const s = matchScore(tr.samples[tr.samples.length - 1].bbox, d.bbox as BBox, o.t - tr.lastT);
         if (s >= MIN_SCORE) pairs.push({ ti, di, s });
       });
@@ -91,15 +96,15 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
       const bbox = d.bbox as BBox;
       const a = assigned.get(di);
       if (a && !a.ambiguous) {
-        a.tr.samples.push({ t: o.t, bbox, estimated: false });
+        a.tr.samples.push({ t: o.t, bbox, colour: d.colour, estimated: false });
         a.tr.lastT = o.t;
         nextActive.push(a.tr);
       } else if (a && a.ambiguous) {
         // do not guess identity: close old track as uncertain, start a new uncertain track
         a.tr.uncertain = true;
-        nextActive.push(newTrack(d.cls, o.t, bbox, prov, true));
+        nextActive.push(newTrack(d.cls, o.t, bbox, prov, true, d.colour));
       } else {
-        nextActive.push(newTrack(d.cls, o.t, bbox, prov, false));
+        nextActive.push(newTrack(d.cls, o.t, bbox, prov, false, d.colour));
       }
     });
     // unmatched active tracks remain eligible until MAX_GAP_S

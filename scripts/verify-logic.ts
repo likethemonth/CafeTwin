@@ -51,3 +51,14 @@ assert.equal(activeObservations(useStore.getState())["0.00"].provenance, "model"
 const modelAlert = derive(frames.map(f=>({...f,provenance:"model" as const})),PRESET_ZONES,settings,6,[],{},"drivethrough").alerts[0];
 assert.notEqual(modelAlert.id, alert.id, "Synthetic acknowledgement cannot acknowledge model evidence");
 console.log("PASS: separate evidence caches and acknowledgement identities");
+
+// Footage replay: bodies retain observed paint, and newer empty frames remove ghost cars.
+const { vehiclePaint } = await import('../src/logic/appearance');
+const painted = frames.map(f=>({...f,provenance:'model' as const,detections:f.detections.map(d=>({...d,colour:'black'}))}));
+const redWait = derive(painted,PRESET_ZONES,settings,6,[],{},'drivethrough');
+assert.equal(redWait.now[0].status,'red');
+assert.equal(vehiclePaint(redWait.now[0]),'#27282a','Wait status must not repaint vehicle');
+assert.equal(derive([...painted,{...painted[0],t:7,detections:[]}],PRESET_ZONES,settings,7,[],{},'drivethrough').now.length,0,'No ghost boxes after analysed absence');
+const changedColour = [painted[0],{...painted[1],detections:painted[1].detections.map(d=>({...d,colour:'silver'}))}];
+assert.equal(buildTracks(changedColour,'drivethrough').length,2,'Colour mismatch must not inherit identity');
+console.log('PASS: vehicle appearance, colour association, absence visibility');

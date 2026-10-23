@@ -61,6 +61,7 @@ export interface Zone {
 
 export interface TrackSample {
   t: number;
+  colour?: string;
   bbox: BBox;
   estimated: boolean; // true = interpolated
 }

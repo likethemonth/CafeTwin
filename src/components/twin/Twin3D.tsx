@@ -13,6 +13,7 @@ import {
 } from "./lane";
 import { VehicleMesh, useSmoothMotion } from "./VehicleMesh";
 import "./twin.css";
+import { vehiclePaint } from "../../logic/appearance";
 
 const CAM_POS = new THREE.Vector3(20, 22, 20);
 const CAM_TARGET = new THREE.Vector3(2, 0, -1.5);
@@ -128,7 +129,7 @@ function Vehicle({ s, selected, showLabel }: { s: TrackState; selected: boolean;
   const ref = useRef<THREE.Group>(null);
   const target = pointOnLane(s.laneProgress ?? 0);
   const init = useRef<[number, number, number]>([target.x, 0, target.z]);
-  const color = vehicleColor(s);
+  const color = vehiclePaint(s);
   const opacity = s.estimated || s.stale ? 0.5 : 1;
 
   const wheels = useRef<(THREE.Object3D | null)[]>([]);

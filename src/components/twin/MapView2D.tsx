@@ -8,6 +8,7 @@ import {
   pointOnLane, sampleLane,
 } from "./lane";
 import "./twin.css";
+import { vehiclePaint } from "../../logic/appearance";
 
 function pathFor(from: number, to: number): string {
   return sampleLane(from, to, 0.01).map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(2)},${p.z.toFixed(2)}`).join(" ");
@@ -86,8 +87,8 @@ export function MapView2D({ notice }: { notice?: string }) {
               onClick={(e) => { e.stopPropagation(); select(sel ? null : s.track.id); }}>
               <rect x={-1} y={-0.5} width={2} height={1} rx={0.25}
                 style={{ transform: `rotate(${deg}deg)`, transition: playing ? "transform 0.3s linear" : "none" }}
-                fill={colorOf(s)} fillOpacity={s.estimated || s.stale ? 0.5 : 1}
-                stroke={sel ? SELECTED_COLOR : "#0b1220"} strokeWidth={sel ? 0.25 : 0.08} />
+                fill={vehiclePaint(s)} fillOpacity={s.estimated || s.stale ? 0.5 : 1}
+                stroke={sel ? SELECTED_COLOR : colorOf(s)} strokeWidth={sel ? 0.25 : 0.15} />
               <text x={-1.4} y={0} fontSize={fs} fill={sel ? "#93c5fd" : "#e2e8f0"} textAnchor="end" dominantBaseline="middle" className="tw-mono">
                 {s.track.id}{s.dwellS != null ? ` ${s.dwellS.toFixed(1)}s` : ""}
               </text>
