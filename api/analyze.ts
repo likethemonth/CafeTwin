@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { analyzeFrame } from "../server/analyzeHandler";
+import { analyzeFrame } from "../server/analyzeHandler.js";
 
 export const config = { maxDuration: 60 };
 

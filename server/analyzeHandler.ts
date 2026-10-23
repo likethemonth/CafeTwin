@@ -1,6 +1,6 @@
 // Core frame-analysis handler shared by the Vercel function and the Vite dev middleware.
 // Never logs or returns the API key.
-import { FrameObservationSchema } from "../src/types";
+import { FrameObservationSchema } from "../src/types.js";
 
 export interface AnalyzeBody {
   sessionId: string;
