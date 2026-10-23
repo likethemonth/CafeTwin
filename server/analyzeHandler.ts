@@ -15,12 +15,29 @@ export interface AnalyzeResult {
   json: unknown;
 }
 
-const PROMPT = `You are a careful vision annotator for a drive-through operations dashboard.
-List only VISIBLE vehicles and persons in this single frame.
-For each, give a normalised bounding box [xMin, yMin, xMax, yMax] in 0..1 from the image top-left,
-an optional plain colour (e.g. "black"), and an optional short visual note.
+// Aerial frames contain ~150 parked cars; enumerating them all exceeds the timeout.
+const AERIAL_FOCUS = `
+This is a top-down aerial view. Do NOT list parked cars in the car park or vehicles on the main road.
+Only list vehicles in or queuing for the drive-through lane that wraps the small building, at most 15.`;
+
+function buildPrompt(width: number, height: number, focus = ""): string {
+  return `You are a careful vision annotator for a drive-through operations dashboard.
+The attached image is exactly ${width} pixels wide and ${height} pixels tall. Pixel (0,0) is the top-left corner.
+List every VISIBLE vehicle and person in this single frame.${focus}
+For each, give a bounding box [xMin, yMin, xMax, yMax] in INTEGER PIXEL coordinates of this image
+(0 <= xMin < xMax <= ${width}, 0 <= yMin < yMax <= ${height}).
+Box rules:
+- The box must be TIGHT: its edges touch the outermost visible pixels of the object itself
+  (for vehicles include wheels, mirrors, bumpers and roof; for persons include head, hands and feet).
+- Exclude shadows, reflections, ground markings and surrounding background.
+- Include objects that are partially visible or cut off at the image edge; box only the visible part.
+- One box per object; do not merge adjacent vehicles or people into one box.
+- Persons visible only through a vehicle window may be included only if clearly visible; say so in the note.
+- Ignore watermark, logo or overlay text.
+Also give an optional plain colour (e.g. "black") and an optional short visual note.
 Do NOT guess identities, licence plates, names, faces, intent, or whether an order is complete.
 Do not invent objects that are not clearly visible. Return JSON only.`;
+}
 
 const DETECTION_JSON_SCHEMA = {
   type: "object",
@@ -87,8 +104,12 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
     return bad(400, "bad_request", "expected {sessionId, t, imageDataUrl, width, height}");
   }
 
+  // Dimensions of the image actually sent; the model answers in these pixel units and we normalise.
+  const imgW = Math.max(1, Math.round(body.width));
+  const imgH = Math.max(1, Math.round(body.height));
+
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 30_000);
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
   let resp: Response;
   try {
     resp = await fetch(url, {
@@ -97,12 +118,13 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
       headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({
         model,
+        reasoning: { effort: "low" }, // detection is perceptual; long reasoning caused timeouts on dense frames
         input: [
           {
             role: "user",
             content: [
-              { type: "input_text", text: PROMPT },
-              { type: "input_image", image_url: body.imageDataUrl },
+              { type: "input_text", text: buildPrompt(imgW, imgH, body.sessionId.startsWith("aerial") ? AERIAL_FOCUS : "") },
+              { type: "input_image", image_url: body.imageDataUrl, detail: "high" },
             ],
           },
         ],
@@ -113,7 +135,7 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
     });
   } catch (e: any) {
     clearTimeout(timer);
-    if (e?.name === "AbortError") return bad(504, "timeout", "vision provider timed out after 30s");
+    if (e?.name === "AbortError") return bad(504, "timeout", "vision provider timed out after 45s");
     return bad(502, "upstream_unreachable", String(e?.message ?? e).slice(0, 200));
   }
   clearTimeout(timer);
@@ -141,35 +163,38 @@ export async function analyzeFrame(rawBody: unknown): Promise<AnalyzeResult> {
   const parsed = safeParse(text) as any;
   if (!parsed || !Array.isArray(parsed.detections)) return bad(502, "invalid_response", "output was not the expected JSON");
 
-  // Reject malformed provider data rather than clamping or silently discarding boxes.
+  // Pixel boxes -> normalised 0..1. Reject structurally malformed output; clamp slight overshoot;
+  // drop boxes that are degenerate (< 2 px) after clamping.
   if (parsed.detections.some((d: any) => !d || !["vehicle", "person"].includes(d.cls) ||
     !Array.isArray(d.bbox) || d.bbox.length !== 4 ||
-    d.bbox.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1) ||
-    d.bbox[0] >= d.bbox[2] || d.bbox[1] >= d.bbox[3])) {
+    d.bbox.some((v: unknown) => typeof v !== "number" || !Number.isFinite(v)))) {
     return bad(502, "invalid_response", "provider returned invalid detections or bounding boxes");
   }
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
   const counters = { vehicle: 0, person: 0 };
-  const detections = parsed.detections
-    .filter((d: any) => d && (d.cls === "vehicle" || d.cls === "person") && Array.isArray(d.bbox) && d.bbox.length === 4)
-    .map((d: any) => {
-      const b = d.bbox;
-      const cls = d.cls as "vehicle" | "person";
-      counters[cls] += 1;
-      return {
-        id: `${cls === "vehicle" ? "v" : "p"}${counters[cls]}`,
-        cls,
-        bbox: [b[0], b[1], b[2], b[3]],
-        ...(typeof d.colour === "string" && d.colour ? { colour: d.colour } : {}),
-        ...(typeof d.note === "string" && d.note ? { note: d.note } : {}),
-      };
-    })
-    .filter((d: any) => d.bbox[0] < d.bbox[2] && d.bbox[1] < d.bbox[3]);
+  const detections = [];
+  for (const d of parsed.detections as any[]) {
+    let [x0, y0, x1, y1] = d.bbox as number[];
+    if (x0 > x1) [x0, x1] = [x1, x0];
+    if (y0 > y1) [y0, y1] = [y1, y0];
+    const b = [clamp01(x0 / imgW), clamp01(y0 / imgH), clamp01(x1 / imgW), clamp01(y1 / imgH)];
+    if ((b[2] - b[0]) * imgW < 2 || (b[3] - b[1]) * imgH < 2) continue;
+    const cls = d.cls as "vehicle" | "person";
+    counters[cls] += 1;
+    detections.push({
+      id: `${cls === "vehicle" ? "v" : "p"}${counters[cls]}`,
+      cls,
+      bbox: b.map((v) => Math.round(v * 10000) / 10000) as [number, number, number, number],
+      ...(typeof d.colour === "string" && d.colour ? { colour: d.colour } : {}),
+      ...(typeof d.note === "string" && d.note ? { note: d.note } : {}),
+    });
+  }
 
   const obs = FrameObservationSchema.safeParse({
     sessionId: body.sessionId,
     t: body.t,
-    width: Math.max(1, Math.round(body.width)),
-    height: Math.max(1, Math.round(body.height)),
+    width: imgW,
+    height: imgH,
     detections,
     provenance: "model",
     model,

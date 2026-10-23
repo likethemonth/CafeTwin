@@ -68,21 +68,56 @@ function hiddenClone(video: HTMLVideoElement): HTMLVideoElement {
   return c;
 }
 
-/** Seek a hidden clone of the video to t, draw it to a canvas, return a JPEG data URL. */
-export async function captureFrame(video: HTMLVideoElement, t: number): Promise<string> {
+/** Longer side of the image sent to the model; upscaling gives the vision model more pixels per object. */
+// Native size: eval showed upscaling to 1536 gave no accuracy gain over the pixel-coordinate prompt, at 2–3x payload and aerial timeouts.
+const SEND_LONG_SIDE = 768;
+
+export interface CapturedFrame {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+/** Resolve once the seeked frame has actually been presented (rVFC where available, plus 2 rAFs). */
+function waitPresented(v: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    };
+    const rvfc = (v as any).requestVideoFrameCallback;
+    if (typeof rvfc === "function") {
+      rvfc.call(v, () => finish());
+      setTimeout(finish, 300); // paused/hidden videos may never fire rVFC
+    } else {
+      finish();
+    }
+  });
+}
+
+/** Seek a hidden clone of the video to t, draw it upscaled to a canvas, return a JPEG + its size. */
+export async function captureFrame(video: HTMLVideoElement, t: number): Promise<CapturedFrame> {
   const v = hiddenClone(video);
   await waitLoaded(v);
   const dur = isFinite(v.duration) ? v.duration : t;
   await seekTo(v, Math.min(Math.max(0, t), Math.max(0, dur - 0.05)));
-  const w = v.videoWidth || 768;
-  const h = v.videoHeight || 432;
+  await waitPresented(v);
+  const vw = v.videoWidth || 768;
+  const vh = v.videoHeight || 432;
+  const scale = Math.min(1, SEND_LONG_SIDE / Math.max(vw, vh));
+  const w = Math.round(vw * scale);
+  const h = Math.round(vh * scale);
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas unavailable");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(v, 0, 0, w, h);
-  return canvas.toDataURL("image/jpeg", 0.8);
+  return { dataUrl: canvas.toDataURL("image/jpeg", 0.85), width: w, height: h };
 }
 
 async function requestObservation(
@@ -168,10 +203,9 @@ export async function analyseSegment(
     for (const t of todo) {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (!isCurrent(sourceId, sessionId)) return results;
-      const img = await captureFrame(video, t);
-      const w = video.videoWidth || 768;
-      const h = video.videoHeight || 432;
-      const obs = await requestObservation(sessionId, t, img, w, h, signal);
+      // width/height = size of the image actually sent (bboxes come back normalised, so scale is transparent)
+      const frame = await captureFrame(video, t);
+      const obs = await requestObservation(sessionId, t, frame.dataUrl, frame.width, frame.height, signal);
       if (!isCurrent(sourceId, sessionId)) return results; // stale session: drop late result
       useStore.getState().addObservation(obs);
       results.push(obs);
