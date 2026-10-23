@@ -1,0 +1,172 @@
+/* Video panel, zone editor, analysis panel. Dark charcoal / navy. */
+.vp-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0b1020;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.vp-stage.vp-fs {
+  aspect-ratio: auto;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+  background: #000;
+}
+.vp-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+.vp-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.vp-overlay.vp-editing { cursor: crosshair; }
+.vp-box { cursor: pointer; }
+.vp-box-label {
+  font: 600 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  fill: #0b1020;
+  pointer-events: none;
+}
+.vp-zone { pointer-events: none; }
+.vp-zone-label {
+  font: 600 11px ui-sans-serif, system-ui, sans-serif;
+  paint-order: stroke;
+  stroke: #0b1020;
+  stroke-width: 3px;
+}
+.vp-fs-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.vp-fs-btn:hover { background: rgba(30, 41, 59, 0.95); }
+.vp-edit-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #bfdbfe;
+  background: rgba(30, 58, 138, 0.8);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Cards */
+.vp-card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #cbd5e1;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vp-card-title { font-weight: 600; color: #f1f5f9; letter-spacing: 0.02em; }
+.vp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.vp-hint { color: #94a3b8; font-size: 12px; margin: 0; }
+.vp-num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+.vp-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #e2e8f0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.vp-btn:hover:not(:disabled) { background: #273449; }
+.vp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.vp-btn-primary { background: #1d4ed8; border-color: #2563eb; }
+.vp-btn-primary:hover:not(:disabled) { background: #2563eb; }
+.vp-btn-active { background: #1e3a8a; border-color: #3b82f6; }
+.vp-btn-small { padding: 2px 8px; font-size: 11px; }
+.vp-btn-synth { border-style: dashed; border-color: #a855f7; }
+
+.vp-input {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #e2e8f0;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  min-width: 0;
+}
+.vp-field { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #94a3b8; }
+.vp-field .vp-input { width: 80px; }
+.vp-check { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+.vp-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #1e293b;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vp-tag-synth { background: #581c87; color: #f3e8ff; }
+.vp-tag-synth-text { color: #c084fc; }
+
+.vp-progress {
+  position: relative;
+  height: 16px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.vp-progress-bar { height: 100%; background: linear-gradient(90deg, #1d4ed8, #3b82f6); transition: width 0.2s; }
+.vp-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #e2e8f0;
+}
+.vp-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid #7f1d1d;
+  border-radius: 4px;
+}
+
+.vp-zone-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.vp-zone-item { display: flex; align-items: center; gap: 8px; }
+.vp-zone-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vp-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.vp-zone-draft { display: flex; flex-direction: column; gap: 6px; }
