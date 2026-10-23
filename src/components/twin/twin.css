@@ -39,3 +39,7 @@
 .tw-occ-name { color: #94a3b8; display: flex; align-items: center; }
 .tw-occ-num { font-size: 26px; font-weight: 600; margin-top: 4px; }
 .tw-occ-hint { margin-top: 12px; }
+.tw-overlay-br { bottom: 8px; right: 8px; }
+.tw-occ-mini { background: rgba(15, 23, 42, 0.88); border: 1px solid #1e293b; border-radius: 8px; padding: 8px 10px; min-width: 170px; display: flex; flex-direction: column; gap: 4px; }
+.tw-occ-mini-row { display: flex; justify-content: space-between; gap: 12px; color: #94a3b8; align-items: center; }
+.tw-occ-mini-row b { color: #e2e8f0; font-size: 13px; }

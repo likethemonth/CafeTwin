@@ -6,6 +6,8 @@ import { MapView2D } from "./MapView2D";
 import "./twin.css";
 
 const Twin3D = lazy(() => import("./Twin3D"));
+const AerialTwin3D = lazy(() => import("./AerialTwin3D"));
+const StaffTwin3D = lazy(() => import("./StaffTwin3D"));
 
 function hasWebGL(): boolean {
   try {
@@ -73,24 +75,23 @@ export function TwinView() {
   const updateSettings = useStore((s) => s.updateSettings);
   const webgl = useMemo(hasWebGL, []);
 
-  const aerialNote = sourceId === "aerial" ? "Aerial clip: moving camera — detections not mapped to lanes" : undefined;
-  const glNotice = "WebGL unavailable — showing 2D map";
+  const aerialNote = sourceId === "aerial" ? "Aerial clip: moving camera — positions are frame-local, not lane-mapped" : undefined;
+  const glNotice = "WebGL unavailable — showing 2D fallback";
+  const fallbackFor = (notice?: string): ReactNode =>
+    sourceId === "staff" ? <StaffOccupancy /> : <MapView2D notice={notice} />;
 
   let body: ReactNode;
-  if (sourceId === "staff") {
-    body = <StaffOccupancy />;
-  } else if (view === "map") {
-    body = <MapView2D notice={aerialNote} />;
+  if (view === "map") {
+    body = fallbackFor(aerialNote);
   } else if (!webgl) {
-    body = <MapView2D notice={[glNotice, aerialNote].filter(Boolean).join(" · ")} />;
+    body = fallbackFor([glNotice, aerialNote].filter(Boolean).join(" · "));
   } else {
-    const fallback = <MapView2D notice={[glNotice, aerialNote].filter(Boolean).join(" · ")} />;
+    const scene = sourceId === "aerial" ? <AerialTwin3D /> : sourceId === "staff" ? <StaffTwin3D /> : <Twin3D />;
     body = (
-      <CanvasBoundary fallback={fallback}>
+      <CanvasBoundary key={sourceId} fallback={fallbackFor([glNotice, aerialNote].filter(Boolean).join(" · "))}>
         <Suspense fallback={<div className="tw-canvas-wrap tw-loading">Loading 3D…</div>}>
-          <Twin3D />
+          {scene}
         </Suspense>
-        {aerialNote && <div className="tw-overlay tw-overlay-bl tw-notice">{aerialNote}</div>}
       </CanvasBoundary>
     );
   }
@@ -100,10 +101,10 @@ export function TwinView() {
       <div className="tw-toolbar">
         <span className="tw-title">Digital twin <span className="tw-dim">· schematic</span></span>
         <div className="tw-seg">
-          <button className={`tw-btn${view === "3d" ? " tw-btn-on" : ""}`} disabled={sourceId === "staff"}
+          <button className={`tw-btn${view === "3d" ? " tw-btn-on" : ""}`}
             onClick={() => updateSettings({ view: "3d" })}>3D</button>
-          <button className={`tw-btn${view === "map" ? " tw-btn-on" : ""}`} disabled={sourceId === "staff"}
-            onClick={() => updateSettings({ view: "map" })}>Map</button>
+          <button className={`tw-btn${view === "map" ? " tw-btn-on" : ""}`}
+            onClick={() => updateSettings({ view: "map" })}>{sourceId === "staff" ? "Counts" : "Map"}</button>
         </div>
         <label className="tw-check">
           <input type="checkbox" checked={showZoneLabels} onChange={(e) => updateSettings({ showZoneLabels: e.target.checked })} />

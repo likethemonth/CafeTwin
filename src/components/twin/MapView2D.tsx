@@ -22,6 +22,8 @@ export function MapView2D({ notice }: { notice?: string }) {
   const showZoneLabels = useStore((s) => s.settings.showZoneLabels);
   const selectedId = useStore((s) => s.selectedTrackId);
   const select = useStore((s) => s.select);
+  // ease between derived updates while playing; snap when paused/seeking
+  const playing = useStore((s) => s.playing);
   const { now } = useDerived();
   const vehicles = now.filter((s) => s.track.cls === "vehicle" && s.laneProgress != null);
   const unmapped = now.filter((s) => s.track.cls === "vehicle" && s.laneProgress == null && s.bbox != null).length;
@@ -79,9 +81,11 @@ export function MapView2D({ notice }: { notice?: string }) {
           const sel = s.track.id === selectedId;
           const deg = (p.heading * 180) / Math.PI;
           return (
-            <g key={s.track.id} transform={`translate(${p.x} ${p.z})`} className="tw-map-veh"
+            <g key={s.track.id} className="tw-map-veh"
+              style={{ transform: `translate(${p.x}px, ${p.z}px)`, transition: playing ? "transform 0.3s linear" : "none" }}
               onClick={(e) => { e.stopPropagation(); select(sel ? null : s.track.id); }}>
-              <rect x={-1} y={-0.5} width={2} height={1} rx={0.25} transform={`rotate(${deg})`}
+              <rect x={-1} y={-0.5} width={2} height={1} rx={0.25}
+                style={{ transform: `rotate(${deg}deg)`, transition: playing ? "transform 0.3s linear" : "none" }}
                 fill={colorOf(s)} fillOpacity={s.estimated || s.stale ? 0.5 : 1}
                 stroke={sel ? SELECTED_COLOR : "#0b1220"} strokeWidth={sel ? 0.25 : 0.08} />
               <text x={-1.4} y={0} fontSize={fs} fill={sel ? "#93c5fd" : "#e2e8f0"} textAnchor="end" dominantBaseline="middle" className="tw-mono">

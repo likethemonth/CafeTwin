@@ -11,6 +11,7 @@ import {
   KIOSK, LANE_WIDTH, LANE_ZONES, SELECTED_COLOR, SIDE_CAMERA, STATUS_COLOR, WINDOW_1, WINDOW_2,
   pointOnLane, sampleLane, type LanePoint,
 } from "./lane";
+import { VehicleMesh, useSmoothMotion } from "./VehicleMesh";
 import "./twin.css";
 
 const CAM_POS = new THREE.Vector3(20, 22, 20);
@@ -129,19 +130,9 @@ function Vehicle({ s, selected, showLabel }: { s: TrackState; selected: boolean;
   const init = useRef<[number, number, number]>([target.x, 0, target.z]);
   const color = vehicleColor(s);
   const opacity = s.estimated || s.stale ? 0.5 : 1;
-  const transparent = opacity < 1;
 
-  useFrame((_, dt) => {
-    const g = ref.current;
-    if (!g) return;
-    const k = 1 - Math.pow(0.002, dt);
-    g.position.x += (target.x - g.position.x) * k;
-    g.position.z += (target.z - g.position.z) * k;
-    const goal = -target.heading;
-    let diff = goal - g.rotation.y;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    g.rotation.y += diff * k;
-  });
+  const wheels = useRef<(THREE.Object3D | null)[]>([]);
+  useSmoothMotion(ref, target.x, target.z, -target.heading, wheels);
 
   return (
     <group
@@ -152,39 +143,7 @@ function Vehicle({ s, selected, showLabel }: { s: TrackState; selected: boolean;
       onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { document.body.style.cursor = ""; }}
     >
-      {/* body */}
-      <mesh position={[0, 0.5, 0]} castShadow>
-        <boxGeometry args={[2.0, 0.55, 1.0]} />
-        <meshStandardMaterial color={color} transparent={transparent} opacity={opacity}
-          emissive={selected ? SELECTED_COLOR : "#000000"} emissiveIntensity={selected ? 0.6 : 0} />
-      </mesh>
-      {/* cabin */}
-      <mesh position={[-0.15, 0.98, 0]} castShadow>
-        <boxGeometry args={[1.05, 0.42, 0.9]} />
-        <meshStandardMaterial color="#cbd5e1" transparent={transparent} opacity={opacity * 0.9} />
-      </mesh>
-      {/* wheels */}
-      {[[0.62, 0.52], [0.62, -0.52], [-0.62, 0.52], [-0.62, -0.52]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.22, z]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.22, 0.22, 0.14, 12]} />
-          <meshStandardMaterial color="#0f172a" transparent={transparent} opacity={opacity} />
-        </mesh>
-      ))}
-      {selected && (
-        <mesh position={[0, 0.65, 0]}>
-          <boxGeometry args={[2.3, 1.2, 1.3]} />
-          <meshBasicMaterial color={SELECTED_COLOR} wireframe />
-        </mesh>
-      )}
-      {showLabel && (
-        <Html position={[0, 1.8, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: "none" }}>
-          <div className={`tw-veh-label${selected ? " tw-veh-label-sel" : ""}`} style={{ borderColor: selected ? SELECTED_COLOR : color }}>
-            {s.track.id}
-            {s.dwellS != null && <span className="tw-mono"> {s.dwellS.toFixed(1)}s</span>}
-            {s.estimated && <span className="tw-dim"> est</span>}
-          </div>
-        </Html>
-      )}
+      <VehicleMesh s={s} selected={selected} showLabel={showLabel} color={color} opacity={opacity} wheels={wheels} />
     </group>
   );
 }
