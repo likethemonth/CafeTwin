@@ -6,7 +6,7 @@ Camera-assisted digital twin proof of concept for a drive-through coffee kiosk. 
 
 ```bash
 pnpm install
-cp .env.example .env   # set OPENAI_API_KEY (server-side only)
+cp .env.example .env   # configure Azure or OpenAI server-side
 pnpm dev
 ```
 
@@ -16,8 +16,11 @@ Without a key, playback, zone editing and a clearly labelled **synthetic** demo 
 
 | Var | Purpose |
 |---|---|
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI v1 base URL, ending `/openai/v1/`; the adapter appends `responses`. |
+| `AZURE_OPENAI_API_KEY` | Server-side Azure key; Azure is preferred when both endpoint and key exist. |
+| `AZURE_OPENAI_DEPLOYMENT` | Azure deployment name; defaults to `gpt-6-astra`. |
 | `OPENAI_API_KEY` | Server-side key for hosted vision. Never exposed to the browser. |
-| `VISION_MODEL` | Defaults to `gpt-6-astra` ("Astra"), the identifier found in the local Codex model cache. Not verified against the API during the build. |
+| `VISION_MODEL` | Defaults to `gpt-6-astra` ("Astra"), the identifier found in the local Codex model cache. OpenAI fallback access is unverified. Azure image-input access was verified locally with a real frame on 2026-10-23. |
 
 ## Footage
 
@@ -45,3 +48,32 @@ UI patterns and base stylesheet adapted from [WareTwin](https://github.com/Wayne
 - Tracking is greedy IoU/centre matching on sparse samples; no re-identification across recordings.
 - Vehicles present at clip start have unknown arrival; waits are "observed waiting for…".
 - Disappearance is "track lost", never a confirmed exit.
+
+- The twin is schematic, not calibrated geometry. Zone membership maps horizontal image position into a role-specific lane segment; detections outside configured lane zones remain unmapped. Editing polygons does not rebuild the kiosk geometry.
+- Aerial detections use separate frame-local IDs. No camera stabilisation, cross-recording identity, or reliable scene-cut detector is implemented (fixed-camera tracking has only a weak cut heuristic).
+- Zone membership uses bottom-centre points and repeated samples; sparse sampling can miss short visits. An observed exit-zone detection is not proof of a completed order.
+- The synthetic button injects fabricated observations into the selected recording's cache. These boxes are not annotations of the underlying footage, and same-timestamp results can be replaced. Use **Clear synthetic** before actual analysis; do not interpret a mixed cache as model-only evidence.
+- A current-frame Azure request returned HTTP 200 with one validated detection. Box accuracy, recall, identity stability and staffing assumptions have not been quantitatively evaluated.
+- Browser-local settings, observations, playback times and acknowledgements persist; there is no shared backend or multi-user audit trail. Clearing browser storage clears them. Large videos and credentials are not stored there.
+- The bundled clips are the only supported sources; upload, missing-video recovery, robust scene-cut handling and production authentication/rate limiting remain unfinished. Keep hosted inference credentials off an unrestricted public deployment until access controls are added.
+- Desktop layout was checked at 1440×900 and 1280×800. Mobile layout is not validated. The lazy-loaded 3D bundle is large; a 2D map is available.
+- Original coding-agent session logs are not packaged in this repository. The assessment still requires the original, unmodified exports; this README and verification notes are not substitutes.
+
+## Synthetic manager walkthrough
+
+1. Choose **Drive-through lane**, then **Load synthetic demo** (fabricated observations, no model request).
+2. Set **Wait target (s)** to **3** and scrub to roughly **12 seconds**.
+3. Click the Window 2 wait alert. It selects V001 and jumps to its supporting 10-second sample.
+4. Inspect the selected object's zone timeline and sample buttons; selection is shared with video, map and journey table.
+5. Click **Ack**, then refresh. The alert remains acknowledged and playback time is restored.
+6. Scrub backwards to 0 seconds: later alerts disappear; scrub forward to reproduce them without duplicates.
+
+## Verification and deployment
+
+```bash
+pnpm build
+npx --yes tsx scripts/verify-logic.ts
+vercel --prod --yes
+```
+
+Headless Chromium checks covered the synthetic workflow, acknowledgement after reload, source isolation, backward seeking, shared selection, canvas sizing, zone editor framing and normal/resized/fullscreen SVG coordinates. The final clean local UI run had no console errors. Provider validation checks use fixtures and do not establish detection quality. Browser screenshots are saved locally under `output/playwright/` (gitignored).
