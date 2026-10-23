@@ -22,6 +22,7 @@
 .col-left, .col-right { gap: 8px; overflow: auto; }
 .center { gap: 8px; }
 .center .twin-wrap { flex: 1; min-height: 0; position: relative; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
+.twin-wrap > .tw-root { position: absolute; inset: 0; }
 .bottom { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 @media (max-width: 1600px) { :root { --side-l: 230px; --side-r: 380px; } }
 @media (max-width: 1400px) { :root { --side-l: 210px; --side-r: 340px; } }

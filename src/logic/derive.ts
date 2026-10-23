@@ -4,6 +4,7 @@ import { SOURCES, useStore, type Settings } from "../store";
 import type { Alert, BBox, FrameObservation, OperationalEvent, SourceId, Track, TrackSample, Zone, ZoneVisit } from "../types";
 import type { BoxStatus, Derived, Metrics, TrackState } from "./contract";
 import { buildTracks } from "./tracker";
+import { LANE_ZONES } from "../components/twin/lane";
 
 const INTERP_MAX_GAP_S = 3;
 const STALE_S = 2.5;
@@ -87,7 +88,7 @@ export function derive(
   const events: OperationalEvent[] = [];
   const push = (e: Omit<OperationalEvent, "id" | "sourceId">) => {
     if (e.t > now) return;
-    const id = `${e.kind}:${e.trackId ?? "-"}:${e.zoneId ?? "-"}:${fmt(e.t)}`;
+    const id = `${sourceId}:${e.kind}:${e.trackId ?? "-"}:${e.zoneId ?? "-"}:${fmt(e.t)}`;
     events.push({ ...e, t: r2(e.t), id, sourceId });
   };
 
@@ -132,7 +133,8 @@ export function derive(
         if (end - v.enterT > target) {
           push({
             kind: "wait_exceeded",
-            t: v.enterT + target,
+            // Jump to the actual sample supporting the alert, not an earlier threshold instant.
+            t: seen.find((s) => s.t - v.enterT > target && s.t <= end)!.t,
             trackId: track.id,
             zoneId: v.zoneId,
             message: `${track.id} observed in ${zn} longer than ${target}s target`,
@@ -176,7 +178,11 @@ export function derive(
       if (dwellS > target) status = "red";
       else if (dwellS > 0.75 * target) status = "amber";
     }
-    const laneProgress = mapped ? Math.min(1, Math.max(0, bottomCentre(bbox)[0])) : null;
+    const mappingZone = mapped ? rawZone(bbox, zones) : null;
+    const laneZone = LANE_ZONES.find((z) => z.role === mappingZone?.role);
+    const xs = mappingZone?.points.map((p) => p[0]) ?? [];
+    const fraction = xs.length ? Math.min(1, Math.max(0, (bottomCentre(bbox)[0] - Math.min(...xs)) / Math.max(0.001, Math.max(...xs) - Math.min(...xs)))) : 0;
+    const laneProgress = laneZone ? laneZone.from + fraction * (laneZone.to - laneZone.from) : null;
     states.push({ track, bbox, estimated, stale, zoneId, dwellS, status, laneProgress });
   }
 
@@ -218,11 +224,11 @@ export function derive(
     .map((e) => ({ id: e.id, sourceId, trackId: e.trackId!, t: e.t, message: e.message }));
 
   // ----- metrics -----
-  const nonExit = zones.filter((z) => z.role !== "exit");
+  const queueZones = zones.filter((z) => z.role === "queue" || z.role === "order");
   const hasNear = obs.some((o) => o.t <= now && t - o.t <= NEAR_NOW_S);
   const visible = states.filter((s) => s.bbox && !s.stale);
   const queueCount = hasNear
-    ? visible.filter((s) => s.zoneId && zoneById.get(s.zoneId)?.role !== "exit").length
+    ? visible.filter((s) => s.track.cls === "vehicle" && queueZones.some((z) => z.id === s.zoneId)).length
     : null;
   let longestDwellS: number | null = null;
   let longestTrackId: string | null = null;
@@ -243,7 +249,7 @@ export function derive(
       t: o.t,
       count: o.detections.filter((d) => {
         const p = bottomCentre(d.bbox as BBox);
-        return nonExit.some((z) => z.points.length >= 3 && pointInPolygon(p, z.points));
+        return d.cls === "vehicle" && queueZones.some((z) => z.points.length >= 3 && pointInPolygon(p, z.points));
       }).length,
     })),
     analysedFrom: obs.length ? obs[0].t : null,

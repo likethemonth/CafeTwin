@@ -55,7 +55,7 @@ export function buildTracks(observations: FrameObservation[], sourceId: SourceId
 
   for (const o of obs) {
     const prov: Provenance = o.provenance;
-    active = active.filter((tr) => o.t - tr.lastT <= MAX_GAP_S);
+    active = sourceId === "aerial" ? [] : active.filter((tr) => o.t - tr.lastT <= MAX_GAP_S && tr.provenance === prov);
     const pairs: { ti: number; di: number; s: number }[] = [];
     o.detections.forEach((d, di) => {
       active.forEach((tr, ti) => {

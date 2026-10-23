@@ -33,7 +33,7 @@ export default function App() {
               <span>Zones<span className="sub">edit polygons</span></span>
               <span className="muted">{zonesOpen ? "▾" : "▸"}</span>
             </header>
-            {zonesOpen && <div className="panel-b"><ZoneEditor /></div>}
+            {zonesOpen && <div className="panel-b"><ZoneEditor embedded /></div>}
           </section>
           <Inspector />
           <EventLog />

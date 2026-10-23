@@ -153,7 +153,7 @@ export async function analyseSegment(
   }
   if (times.length === 0) times.push(Math.round(Math.max(0, Math.min(from, dur)) * 100) / 100);
   const cached = store.observations[sourceId] ?? {};
-  const todo = times.filter((t) => !cached[key(t)]);
+  const todo = times.filter((t) => cached[key(t)]?.provenance !== "model");
   const total = todo.length;
   const results: FrameObservation[] = [];
   if (total === 0) {

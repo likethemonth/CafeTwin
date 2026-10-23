@@ -6,7 +6,7 @@ import { getVideo } from "./videoRegistry";
 import "./video.css";
 
 const NOT_CONFIGURED_MSG =
-  "Hosted vision not configured — set OPENAI_API_KEY server-side; use synthetic demo to explore.";
+  "Hosted vision not configured — configure Azure OpenAI or OPENAI_API_KEY server-side; use synthetic demo to explore.";
 
 function isNotConfigured(msg: string | null | undefined): boolean {
   return !!msg && /not[_ ]configured/i.test(msg);
@@ -38,7 +38,7 @@ export function AnalysePanel() {
   const remaining = Math.max(0, source.durationS - t);
   const segLen = Math.max(0, Math.min(settings.segmentLenS, remaining));
   const every = Math.max(1, settings.sampleEveryS);
-  const plannedCount = segLen > 0 ? Math.floor(segLen / every) + 1 : 0;
+  const plannedCount = segLen > 0 ? Math.min(12, Math.floor(segLen / every) + 1) : 0;
 
   const running = status?.kind === "running";
   const errorMsg = status?.kind === "error" ? status.message : localError;

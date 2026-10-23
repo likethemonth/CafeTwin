@@ -1,5 +1,6 @@
 /* Video panel, zone editor, analysis panel. Dark charcoal / navy. */
 .vp-stage {
+  flex-shrink: 0;
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -84,6 +85,7 @@
   gap: 8px;
 }
 .vp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vp-card.vp-embedded { border: 0; border-radius: 0; padding: 0; background: transparent; }
 .vp-card-title { font-weight: 600; color: #f1f5f9; letter-spacing: 0.02em; }
 .vp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .vp-hint { color: #94a3b8; font-size: 12px; margin: 0; }

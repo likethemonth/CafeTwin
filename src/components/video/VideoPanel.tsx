@@ -154,7 +154,6 @@ function VideoStage() {
       return () => cancelAnimationFrame(raf);
     } else {
       v.pause();
-      setTime(v.currentTime);
     }
   }, [playing, setTime, setPlaying]);
 

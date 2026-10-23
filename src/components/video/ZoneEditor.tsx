@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { useStore } from "../../store";
 import type { ZoneRole } from "../../types";
@@ -34,7 +34,7 @@ const ROLE_COLORS: Record<ZoneRole, string> = {
 };
 
 
-export function ZoneEditor() {
+export function ZoneEditor({ embedded = false }: { embedded?: boolean }) {
   const sourceId = useStore((s) => s.sourceId);
   const zones = useStore((s) => s.zones);
   const playing = useStore((s) => s.playing);
@@ -43,6 +43,9 @@ export function ZoneEditor() {
   const { active, points, closed, setActive, close, reset } = useZoneDraft();
   const [name, setName] = useState("");
   const [role, setRole] = useState<ZoneRole>("queue");
+
+  // Draft vertices belong to one recording and must not survive closing the editor.
+  useEffect(() => () => setActive(false), [sourceId, setActive]);
 
   const sourceZones = zones.filter((z) => z.sourceId === sourceId);
 
@@ -61,9 +64,9 @@ export function ZoneEditor() {
   };
 
   return (
-    <div className="vp-card vp-zone-editor">
+    <div className={`vp-card vp-zone-editor${embedded ? " vp-embedded" : ""}`}>
       <div className="vp-card-head">
-        <span className="vp-card-title">Zones</span>
+        {!embedded && <span className="vp-card-title">Zones</span>}
         <button className={`vp-btn ${active ? "vp-btn-active" : ""}`} onClick={() => setActive(!active)}>
           {active ? "Exit edit mode" : "Edit zones"}
         </button>

@@ -136,6 +136,7 @@ export const useStore = create<State>()(
       name: "lanetwin-v1",
       partialize: (s) => ({
         sourceId: s.sourceId,
+        times: s.times,
         settings: s.settings,
         zones: s.zones,
         observations: s.observations,
